@@ -75,8 +75,8 @@
                 <td>${book.price}</td>
                 <td>${book.quantity_in_stock}</td>
                 <td>
-                    <a href="{% url 'bookstore:book_edit' 0 %}".replace(0, book.id)>Edit</a> |
-                    <a href="{% url 'bookstore:book_delete' 0 %}".replace(0, book.id) onclick="return confirm('Are you sure you want to delete this book?');">Delete</a>
+                    <a href="/inventory/${book.id}/edit/">Edit</a> |
+                    <a href="/inventory/${book.id}/delete/" onclick="return confirm('Are you sure you want to delete this book?');">Delete</a>
                 </td>
             `;
             tableBody.appendChild(row);
