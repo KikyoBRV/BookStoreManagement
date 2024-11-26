@@ -1,0 +1,18 @@
+{% extends "bookstore/base.html" %}
+
+{% block content %}
+  <h2>Add/Edit Customer</h2>
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="button-container">
+      <button type="submit" class="btn">Save</button>
+    </div>
+  </form>
+
+    <div class="button-container">
+      <a href="{% url 'bookstore:customer' %}" class="btn">Back to Customer List</a>
+    </div>
+{% endblock %}
+

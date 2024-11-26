@@ -1,0 +1,27 @@
+{% extends "bookstore/base.html" %}
+
+{% block content %}
+    <h2>Add/Edit a Book</h2>
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <p>{{ form.title.label }}: {{ form.title }}</p>
+        <p>{{ form.description.label }}: {{ form.description }}</p>
+        <p>{{ form.price.label }}: {{ form.price }}</p>
+        <p>{{ form.quantity_in_stock.label }}: {{ form.quantity_in_stock }}</p>
+        <p>{{ form.publication_year.label }}: {{ form.publication_year }}</p>
+        <p>{{ form.publication_month.label }}: {{ form.publication_month }}</p>
+
+        <p>{{ form.author.label }}: {{ form.author }}</p>
+        <p>{{ form.new_author.label }}: {{ form.new_author }}</p>
+
+        <p>{{ form.publisher.label }}: {{ form.publisher }}</p>
+        <p>{{ form.new_publisher.label }}: {{ form.new_publisher }}</p>
+
+        <p>{{ form.category.label }}: {{ form.category }}</p>
+        <p>{{ form.new_category.label }}: {{ form.new_category }}</p>
+
+        <button type="submit" class="btn">Save</button>
+    </form>
+{% endblock %}

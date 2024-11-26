@@ -1,0 +1,38 @@
+{% extends "bookstore/base.html" %}
+
+{% block content %}
+    <h2>Inventory Management</h2>
+    <div class="button-container">
+        <a href="{% url 'bookstore:book_create' %}" class="btn">Add New Book</a>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Publisher</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Quantity</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for book in books %}
+                <tr>
+                    <td>{{ book.title }}</td>
+                    <td>{{ book.author }}</td>
+                    <td>{{ book.publisher }}</td>
+                    <td>{{ book.category }}</td>
+                    <td>{{ book.price }}</td>
+                    <td>{{ book.quantity_in_stock }}</td>
+                    <td>
+                        <a href="{% url 'bookstore:book_edit' book.pk %}">Edit</a> |
+                        <a href="{% url 'bookstore:book_delete' book.pk %}" onclick="return confirm('Are you sure you want to delete this book?');">Delete</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+
