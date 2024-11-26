@@ -144,4 +144,4 @@ class SupplierView(TemplateView):
     """
     Renders the supplier and procurement management page.
     """
-    template_name = "supplier.html"
+    template_name = "bookstore/supplier.html"
