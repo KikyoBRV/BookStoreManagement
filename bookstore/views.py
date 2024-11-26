@@ -1,5 +1,7 @@
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
 from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView
@@ -18,7 +20,7 @@ class HomeView(TemplateView):
     template_name = 'bookstore/home.html'
 
 
-class InventoryView(TemplateView):
+class InventoryView(LoginRequiredMixin, TemplateView):
     """
     Renders the inventory management page.
     """
@@ -26,10 +28,27 @@ class InventoryView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['books'] = Book.objects.all()  # Pass all books to the template
+        # Filter books by the logged-in user
+        context['books'] = Book.objects.filter(user=self.request.user)
         return context
 
-class BookCreateView(CreateView):
+
+@login_required
+def search_books(request):
+    query = request.GET.get('q', '').strip()
+
+    if query:
+        books = Book.objects.filter(
+            title__icontains=query,
+            user=request.user  # Filter by the logged-in user
+        ).values('id', 'title', 'author__name', 'publisher__name', 'category__name', 'price', 'quantity_in_stock')[:10]
+    else:
+        # If no query, return all books
+        books = Book.objects.filter(user=request.user).values('id', 'title', 'author__name', 'publisher__name', 'category__name', 'price', 'quantity_in_stock')[:10]
+
+    return JsonResponse(list(books), safe=False)
+
+class BookCreateView(LoginRequiredMixin, CreateView):
     """
     View to create a new book, handling both new and existing authors, publishers, and categories.
     """
@@ -39,6 +58,9 @@ class BookCreateView(CreateView):
     success_url = reverse_lazy('bookstore:inventory')
 
     def form_valid(self, form):
+        # Set the logged-in user as the owner of the book
+        form.instance.user = self.request.user
+
         # Handle Author
         if form.cleaned_data['new_author']:
             author, _ = Author.objects.get_or_create(name=form.cleaned_data['new_author'])
@@ -62,7 +84,7 @@ class BookCreateView(CreateView):
 
         return super().form_valid(form)
 
-class BookUpdateView(UpdateView):
+class BookUpdateView(LoginRequiredMixin, UpdateView):
     """
     View to update book details.
     """
@@ -71,13 +93,21 @@ class BookUpdateView(UpdateView):
     template_name = "bookstore/book_form.html"
     success_url = reverse_lazy('bookstore:inventory')
 
-class BookDeleteView(DeleteView):
+    def get_queryset(self):
+        # Ensure users can only update their own books
+        return Book.objects.filter(user=self.request.user)
+
+class BookDeleteView(LoginRequiredMixin, DeleteView):
     """
     View to delete a book.
     """
     model = Book
     template_name = "bookstore/book_confirm_delete.html"
     success_url = reverse_lazy('bookstore:inventory')
+
+    def get_queryset(self):
+        # Ensure users can only delete their own books
+        return Book.objects.filter(user=self.request.user)
 
 
 class SalesView(TemplateView):

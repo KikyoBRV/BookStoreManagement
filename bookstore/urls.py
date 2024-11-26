@@ -7,6 +7,7 @@ app_name = 'bookstore'
 urlpatterns = [
     path('', views.HomeView.as_view(), name='home'),
     path('signup/', views.SignUpView.as_view(), name='signup'),
+    path('search-books/', views.search_books, name='search_books'),
     path('inventory/', views.InventoryView.as_view(), name='inventory'),
     path('inventory/create/', views.BookCreateView.as_view(), name='book_create'),
     path('inventory/<int:pk>/edit/', views.BookUpdateView.as_view(), name='book_edit'),

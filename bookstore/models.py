@@ -35,6 +35,8 @@ class Category(models.Model):
         return self.name
 
 class Book(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.CASCADE, null=True)
     title = models.CharField(max_length=255)
     description = models.TextField()
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
