@@ -1,8 +1,31 @@
-{% extends 'base.html' %}
-
-{% block title %}Customer - Bookstore{% endblock %}
+{% extends "base.html" %}
 
 {% block content %}
-<h1>Customers Management</h1>
-<p>Use the menu to navigate through the app.</p>
+    <h2>Customer Management</h2>
+
+    <div class="button-container">
+        <a href="{% url 'bookstore:customer_create' %}" class="btn">Add Customer</a>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Phone</th>
+                <th>Loyalty Points</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for customer in customers %}
+                <tr>
+                    <td>{{ customer.phone }}</td>
+                    <td>{{ customer.loyalty_points }}</td>
+                    <td>
+                        <a href="{% url 'bookstore:customer_edit' customer.pk %}">Edit</a>
+                        <a href="{% url 'bookstore:customer_delete' customer.pk %}">Delete</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 {% endblock %}

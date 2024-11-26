@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2>Are you sure you want to delete this customer?</h2>
+  <p>Phone: {{ object.phone }}</p>
+  <p>Loyalty Points: {{ object.loyalty_points }}</p>
+
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn">Confirm Delete</button>
+  </form>
+
+  <a href="{% url 'bookstore:customer' %}" class="btn">Cancel</a>
+{% endblock %}
