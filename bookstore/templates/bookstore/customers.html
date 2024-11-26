@@ -10,6 +10,7 @@
     <table>
         <thead>
             <tr>
+                <th>Name</th>
                 <th>Phone</th>
                 <th>Loyalty Points</th>
                 <th>Actions</th>
@@ -18,6 +19,7 @@
         <tbody>
             {% for customer in customers %}
                 <tr>
+                    <td>{{ customer.name }}</td>
                     <td>{{ customer.phone }}</td>
                     <td>{{ customer.loyalty_points }}</td>
                     <td>

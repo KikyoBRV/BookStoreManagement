@@ -101,7 +101,7 @@ class CustomerView(LoginRequiredMixin, TemplateView):
 
 class CustomerCreateView(LoginRequiredMixin, CreateView):
     model = Customer
-    fields = ['phone', 'loyalty_points']
+    fields = ['name', 'phone', 'loyalty_points']
     template_name = 'bookstore/customer_form.html'
 
     def form_valid(self, form):
@@ -115,7 +115,7 @@ class CustomerCreateView(LoginRequiredMixin, CreateView):
 
 class CustomerUpdateView(LoginRequiredMixin, UpdateView):
     model = Customer
-    fields = ['phone', 'loyalty_points']
+    fields = ['name', 'phone', 'loyalty_points']
     template_name = 'bookstore/customer_form.html'
 
     def get_object(self, queryset=None):

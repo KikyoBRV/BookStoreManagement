@@ -7,7 +7,9 @@
 
   <form method="post">
     {% csrf_token %}
-    <button type="submit" class="btn">Confirm Delete</button>
+     <div class="button-container">
+       <button type="submit" class="btn">Confirm Delete</button>
+     </div>
   </form>
 
   <a href="{% url 'bookstore:customer' %}" class="btn">Cancel</a>

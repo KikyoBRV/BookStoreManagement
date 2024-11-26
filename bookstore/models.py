@@ -5,12 +5,13 @@ from django.conf import settings
 class Customer(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE)
+    name = models.CharField(max_length=255, null=True)
     phone = models.CharField(max_length=15)
     join_date = models.DateField(auto_now_add=True)
     loyalty_points = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return f"Customer {self.user.first_name} {self.user.last_name}"
+        return self.name
 
 class Author(models.Model):
     name = models.CharField(max_length=255)
