@@ -1,5 +1,5 @@
 from django import forms
-from .models import Book, Author, Publisher, Category
+from .models import Book, Author, Publisher, Category, Order, OrderItem
 
 
 class BookForm(forms.ModelForm):
@@ -44,3 +44,12 @@ class BookForm(forms.ModelForm):
             'publication_year', 'publication_month'
         ]
 
+class OrderForm(forms.ModelForm):
+    class Meta:
+        model = Order
+        fields = ['customer', 'payment_method', 'total_amount']
+
+class OrderItemForm(forms.ModelForm):
+    class Meta:
+        model = OrderItem
+        fields = ['book', 'amount']

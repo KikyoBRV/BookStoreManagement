@@ -2,11 +2,14 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
-from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView
-from .models import Customer, Book, Author, Publisher, Category
-from .forms import BookForm
+from django.utils.dateparse import parse_date
+from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView, ListView
+from .models import Customer, Book, Author, Publisher, Category, Order, \
+    OrderItem
+from .forms import BookForm, OrderForm
+
 
 class SignUpView(CreateView):
     template_name = 'registration/signup.html'
@@ -109,13 +112,177 @@ class BookDeleteView(LoginRequiredMixin, DeleteView):
         # Ensure users can only delete their own books
         return Book.objects.filter(user=self.request.user)
 
-
-class SalesView(TemplateView):
+class SalesView(ListView):
     """
-    Renders the sales processing page.
+    Displays a list of orders and supports filtering by date.
     """
+    model = Order
     template_name = "bookstore/sales.html"
+    context_object_name = 'orders'
 
+    def get_queryset(self):
+        # Get all orders
+        queryset = super().get_queryset()
+
+        # Check if a date filter is provided
+        date_filter = self.request.GET.get('date')
+        if date_filter:
+            date_obj = parse_date(date_filter)
+            if date_obj:
+                queryset = queryset.filter(order_date=date_obj)
+
+        return queryset
+
+    def get(self, request, *args, **kwargs):
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            # Handle AJAX requests
+            date_filter = request.GET.get('date')
+            queryset = self.get_queryset()
+            data = {
+                'orders': [
+                    {
+                        'id': order.id,
+                        'customer_name': order.customer.name,
+                        'order_date': order.order_date.strftime('%Y-%m-%d'),
+                        'payment_method': order.payment_method,
+                        'total_amount': order.total_amount,
+                        'order_items': [
+                            {
+                                'book_title': item.book.title,
+                                'amount': item.amount
+                            }
+                            for item in order.orderitem_set.all()
+                        ]
+                    }
+                    for order in queryset
+                ]
+            }
+            return JsonResponse(data)
+        return super().get(request, *args, **kwargs)
+
+class AddOrderView(CreateView):
+    """
+    Handles the creation of a new order and sends a list of available books
+    to the order_form template.
+    """
+    model = Order
+    form_class = OrderForm
+    template_name = "bookstore/order_form.html"
+    success_url = reverse_lazy('bookstore:sales')
+
+    def get_context_data(self, **kwargs):
+        """
+        Add the list of books to the context, making them available to the template.
+        """
+        context = super().get_context_data(**kwargs)
+        context['books'] = Book.objects.all()  # Fetch all books
+        return context
+
+    def form_valid(self, form):
+        """
+        Override form_valid to create OrderItems for each selected book
+        and recalculate the total amount for the Order.
+        """
+        # First, save the Order (this creates the Order object)
+        response = super().form_valid(form)
+
+        # Get the created Order object
+        order = self.object
+
+        # Loop through each order item and create OrderItem instances
+        order_items_data = self.request.POST  # Get the data from the form submission
+        order_item_count = len(
+            [key for key in order_items_data if key.startswith('book-')])
+
+        for i in range(1, order_item_count + 1):
+            book_id = order_items_data.get(f'book-{i}')
+            amount = order_items_data.get(f'amount-{i}')
+
+            if book_id and amount:
+                # Fetch the Book object
+                book = Book.objects.get(id=book_id)
+
+                # Create the OrderItem
+                OrderItem.objects.create(
+                    order=order,  # Associate with the Order
+                    book=book,  # Set the Book
+                    amount=amount  # Set the amount
+                )
+
+        # Recalculate the total amount for the Order
+        total_amount = sum(item.amount * item.book.price for item in
+                           order.orderitem_set.all())
+        order.total_amount = total_amount
+        order.save()
+
+        return response
+
+
+def lookup_customer(request):
+    phone = request.GET.get('phone')
+    if phone:
+        try:
+            customer = Customer.objects.get(phone=phone)
+            return JsonResponse({'customer': {'name': customer.name}})
+        except Customer.DoesNotExist:
+            return JsonResponse({'error': 'Customer not found'}, status=404)
+    return JsonResponse({'error': 'No phone number provided'}, status=400)
+
+def create_order(request):
+    if request.method == 'POST':
+        customer_phone = request.POST.get('customer-phone')
+        payment_method = request.POST.get('payment-method')
+
+        # Get customer object
+        customer = Customer.objects.filter(phone=customer_phone).first()
+        if not customer:
+            return JsonResponse({'error': 'Customer not found'}, status=404)
+
+        # Initialize total amount for the order
+        total_amount = 0
+        order_items = []
+
+        # Create the Order first to get an order_id
+        order = Order.objects.create(
+            customer=customer,
+            payment_method=payment_method,
+            total_amount=0  # We'll update total_amount later
+        )
+
+        # Iterate through the items submitted in the form
+        for i in range(1, len(request.POST) // 2):  # Assuming two fields per order item (book, amount)
+            book_id = request.POST.get(f'book-{i}')
+            amount = request.POST.get(f'amount-{i}')
+
+            if book_id and amount:
+                try:
+                    book = Book.objects.get(id=book_id)
+                except Book.DoesNotExist:
+                    continue  # Ignore invalid book IDs
+
+                amount = int(amount)
+
+                # Create OrderItem and associate with the order
+                order_item = OrderItem(book=book, amount=amount, order=order)
+                order_item.save()
+
+                # Add the item price to total amount
+                total_amount += book.price * amount
+
+                # Update Book's quantity in stock
+                book.quantity_in_stock -= amount
+                book.save()
+
+                order_items.append(order_item)
+
+        # Update the total amount for the Order after all OrderItems are created
+        order.total_amount = total_amount
+        order.save()
+
+        # Redirect to the sales page after order is created
+        return redirect('bookstore:sales')
+
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
 
 class CustomerView(LoginRequiredMixin, TemplateView):
     """

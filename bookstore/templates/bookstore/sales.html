@@ -1,8 +1,84 @@
 {% extends "bookstore/base.html" %}
 
-{% block title %}Sales - Bookstore{% endblock %}
-
 {% block content %}
-<h1>Sales Management</h1>
-<p>Use the menu to navigate through the app.</p>
+    <h2>Sales Management</h2>
+
+    <!-- Add Order Button -->
+    <a href="{% url 'bookstore:add_order' %}" class="btn btn-primary">Add Order</a>
+
+    <!-- Search by Date -->
+    <div class="search-container">
+        <input type="date" id="search-date" onchange="searchOrdersByDate(this.value)">
+    </div>
+
+    <!-- Order Table -->
+    <h3>Orders</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Date</th>
+                <th>Payment Method</th>
+                <th>Total Amount</th>
+                <th>Order Items</th>
+            </tr>
+        </thead>
+        <tbody id="order-table-body">
+            {% for order in orders %}
+                <tr>
+                    <td>{{ order.id }}</td>
+                    <td>{{ order.customer.name }}</td>
+                    <td>{{ order.order_date }}</td>
+                    <td>{{ order.payment_method }}</td>
+                    <td>{{ order.total_amount }}</td>
+                    <td>
+                        {% for item in order_items %}
+                            {% if item.order == order %}
+                                <p>{{ item.book.title }} - {{ item.amount }} pcs</p>
+                            {% endif %}
+                        {% endfor %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+
+        // Set the default date to today's date
+        const today = new Date();
+        const formattedDate = today.toISOString().split('T')[0]; // Format date as YYYY-MM-DD
+        document.getElementById('search-date').value = formattedDate;
+
+        // Automatically trigger the search for today's orders
+        searchOrdersByDate(formattedDate);
+
+        function searchOrdersByDate(date) {
+            fetch(`/sales/?date=${date}`, { headers: { 'x-requested-with': 'XMLHttpRequest' } })
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('order-table-body');
+                    tableBody.innerHTML = ''; // Clear existing rows
+                    data.orders.forEach(order => {
+                        const row = document.createElement('tr');
+                        const orderItems = order.order_items
+                            .map(item => `${item.book_title} - ${item.amount} pcs`)
+                            .join('<br>');
+
+                        row.innerHTML = `
+                            <td>${order.id}</td>
+                            <td>${order.customer_name}</td>
+                            <td>${order.order_date}</td>
+                            <td>${order.payment_method}</td>
+                            <td>${order.total_amount}</td>
+                            <td>${orderItems}</td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                })
+                .catch(error => console.log('Error fetching orders:', error));
+        }
+    </script>
+
 {% endblock %}

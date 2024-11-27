@@ -1,0 +1,96 @@
+{% extends "bookstore/base.html" %}
+
+{% block content %}
+<h2>Create New Order</h2>
+
+<form id="order-form" method="POST" action="{% url 'bookstore:create_order' %}">
+    {% csrf_token %}
+
+    <label for="customer-phone">Customer Phone:</label>
+    <input type="text" id="customer-phone" name="customer-phone" required><br><br>
+
+    <label for="payment-method">Payment Method:</label>
+    <select id="payment-method" name="payment-method" required>
+        <option value="credit_card">Credit Card</option>
+        <option value="paypal">PayPal</option>
+        <option value="cash">Cash</option>
+    </select><br><br>
+
+    <h3>Order Items:</h3>
+    <div id="order-items-container">
+        <div class="order-item" id="order-item-1">
+            <label for="book-1">Book:</label>
+            <select class="book-id" id="book-1" name="book-1" required>
+                {% for book in books %}
+                    <option value="{{ book.id }}" data-price="{{ book.price }}">{{ book.title }}</option>
+                {% endfor %}
+            </select><br><br>
+
+            <label for="amount-1">Amount:</label>
+            <input type="number" class="amount" id="amount-1" name="amount-1" required><br><br>
+        </div>
+    </div>
+
+    <button type="button" id="add-order-item-btn">Add Another Item</button><br><br>
+
+    <h3>Total Amount: <span id="total-amount">0</span></h3>
+
+    <button type="submit">Create Order</button>
+</form>
+
+<script>
+    let orderItemCount = 1;
+
+    // Function to update the total amount
+    function updateTotalAmount() {
+        let totalAmount = 0;
+
+        // Loop through each order item and calculate the total
+        for (let i = 1; i <= orderItemCount; i++) {
+            const bookId = document.getElementById(`book-${i}`).value;
+            const amount = document.getElementById(`amount-${i}`).value;
+
+            if (bookId && amount) {
+                const bookPrice = parseFloat(document.getElementById(`book-${i}`).selectedOptions[0].getAttribute('data-price'));
+                totalAmount += bookPrice * parseInt(amount);
+            }
+        }
+
+        document.getElementById('total-amount').innerText = totalAmount.toFixed(2);
+    }
+
+    // Add event listeners for the amount fields to update the total amount
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('amount') || e.target.classList.contains('book-id')) {
+            updateTotalAmount();
+        }
+    });
+
+    // Event listener for adding new OrderItems
+    document.getElementById('add-order-item-btn').addEventListener('click', function() {
+        orderItemCount++;
+
+        // Create new OrderItem field
+        const newOrderItem = document.createElement('div');
+        newOrderItem.classList.add('order-item');
+        newOrderItem.id = `order-item-${orderItemCount}`;
+
+        newOrderItem.innerHTML = `
+            <label for="book-${orderItemCount}">Book:</label>
+            <select class="book-id" id="book-${orderItemCount}" name="book-${orderItemCount}" required>
+                {% for book in books %}
+                    <option value="{{ book.id }}" data-price="{{ book.price }}">{{ book.title }}</option>
+                {% endfor %}
+            </select><br><br>
+
+            <label for="amount-${orderItemCount}">Amount:</label>
+            <input type="number" class="amount" id="amount-${orderItemCount}" name="amount-${orderItemCount}" required><br><br>
+        `;
+
+        // Append the new OrderItem to the container
+        document.getElementById('order-items-container').appendChild(newOrderItem);
+    });
+</script>
+
+{% endblock %}
+

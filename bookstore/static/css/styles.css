@@ -137,34 +137,3 @@ a.btn:hover {
     margin-bottom: 20px; /* Adjust the value as needed */
 }
 
-.dropdown {
-    position: relative;
-    border: 1px solid #ddd;
-    max-height: 200px;
-    overflow-y: auto;
-    background-color: white;
-    z-index: 1000;
-    width: 300px;
-    margin-top: 5px;
-    display: none;
-}
-
-.dropdown-item {
-    padding: 10px;
-    cursor: pointer;
-    border-bottom: 1px solid #f1f1f1;
-}
-
-.dropdown-item:hover {
-    background-color: #f9f9f9;
-}
-
-.dropdown-item a {
-    text-decoration: none;
-    color: black;
-}
-
-#book-table-container {
-    max-height: 400px;
-    overflow-y: auto;
-}
