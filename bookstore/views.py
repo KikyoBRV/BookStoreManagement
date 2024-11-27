@@ -1,4 +1,4 @@
-from django.db.models import Sum
+from django.db.models import Sum, F
 from django.utils import timezone
 from decimal import Decimal
 
@@ -11,8 +11,8 @@ from django.urls import reverse_lazy
 from django.utils.dateparse import parse_date
 from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView, ListView
 from .models import Customer, Book, Author, Publisher, Category, Order, \
-    OrderItem
-from .forms import BookForm, OrderForm
+    OrderItem, Purchase, PurchaseItem
+from .forms import BookForm, OrderForm, PurchaseForm
 
 
 class SignUpView(CreateView):
@@ -330,8 +330,6 @@ def create_order(request):
         # Calculate extra loyalty points based on join date
         local_time = timezone.localtime(timezone.now())  # Get local time
         today = local_time.date()  # Extract date from local time
-        print(today.year)
-        print(customer.join_date.year)
 
         # Check if the customer has already had their full anniversary for the current year
         if (today.month > customer.join_date.month) or (today.month == customer.join_date.month and today.day >= customer.join_date.day):
@@ -340,7 +338,6 @@ def create_order(request):
             years_joined = today.year - customer.join_date.year - 1  # They haven't had their anniversary yet this year
 
         extra_points = round((total_amount // 50) * (Decimal('0.10') * years_joined))
-        print(extra_points)
 
         # Add loyalty points based on order total
         loyalty_points_earned = (total_amount // 50) + extra_points
@@ -411,8 +408,190 @@ class CustomerDeleteView(LoginRequiredMixin, DeleteView):
         # Redirect to the customer management page after successful deletion
         return reverse_lazy('bookstore:customer')
 
-class SupplierView(TemplateView):
+class SupplierView(ListView):
     """
-    Renders the supplier and procurement management page.
+    Displays a list of purchases (supplier orders) and supports filtering by date.
     """
+    model = Purchase
     template_name = "bookstore/supplier.html"
+    context_object_name = 'purchases'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        date_filter = self.request.GET.get('date')
+        if date_filter:
+            date_obj = parse_date(date_filter)
+            if date_obj:
+                queryset = queryset.filter(purchase_date=date_obj)
+        return queryset
+
+
+    def get(self, request, *args, **kwargs):
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            # Handle AJAX requests
+            date_filter = request.GET.get('date')
+            queryset = self.get_queryset()
+            data = {
+                'purchases': [
+                    {
+                        'id': purchase.id,
+                        'purchase_date': purchase.purchase_date.strftime('%Y-%m-%d'),
+                        'total_cost': purchase.total_cost,
+                        'purchase_items': [
+                            {
+                                'book_title': item.book.title,
+                                'amount': item.amount,
+                                'unit_price': item.unit_price,
+                            }
+                            for item in purchase.purchaseitem_set.all()  # Assuming 'purchaseitem_set' is the reverse relation
+                        ]
+                    }
+                    for purchase in queryset
+                ]
+            }
+            return JsonResponse(data)
+        return super().get(request, *args, **kwargs)
+
+class AddPurchaseView(CreateView):
+    """
+    Handles the creation of a new purchase and sends a list of available books
+    to the purchase_form template.
+    """
+    model = Purchase
+    form_class = PurchaseForm
+    template_name = "bookstore/purchase_form.html"
+    success_url = reverse_lazy('bookstore:supplier')
+
+    def get_context_data(self, **kwargs):
+        """
+        Add the list of books to the context, making them available to the template.
+        """
+        context = super().get_context_data(**kwargs)
+        context['books'] = Book.objects.all()  # Fetch all books
+        return context
+
+    def form_valid(self, form):
+        # First, save the Purchase (this creates the Purchase object)
+        response = super().form_valid(form)
+
+        # Get the created Purchase object
+        purchase = self.object
+
+        # Loop through each purchase item and create OrderItem instances
+        purchase_items_data = self.request.POST  # Get the data from the form submission
+        order_item_count = len([key for key in purchase_items_data if key.startswith('book-')])
+
+        for i in range(1, order_item_count + 1):
+            book_id = purchase_items_data.get(f'book-{i}')
+            amount = purchase_items_data.get(f'amount-{i}')
+
+            if book_id and amount:
+                # Fetch the Book object
+                book = Book.objects.get(id=book_id)
+
+                # Create the OrderItem
+                OrderItem.objects.create(
+                    order=purchase,  # Associate with the Purchase
+                    book=book,  # Set the Book
+                    amount=int(amount)  # Convert amount to integer
+                )
+
+        # Recalculate the total amount for the Purchase
+        total_amount = sum(int(item.amount) * item.book.price for item in purchase.orderitem_set.all())
+        purchase.total_amount = total_amount
+        purchase.save()
+
+        return response
+
+
+def create_purchase(request):
+    if request.method == 'POST':
+        # Initialize total cost for the purchase
+        total_cost = 0
+
+        # Create the Purchase first
+        purchase = Purchase.objects.create(
+            purchase_date=timezone.now(),
+            total_cost=0  # Placeholder, updated later
+        )
+
+        # Iterate over submitted data to find all items
+        for key in request.POST.keys():
+            if key.startswith('book-'):
+                # Extract index from the key (e.g., "book-1" -> 1)
+                index = key.split('-')[1]
+                book_id = request.POST.get(f'book-{index}')
+                amount = request.POST.get(f'amount-{index}')
+
+                if book_id and amount:
+                    try:
+                        book = Book.objects.get(id=book_id)
+                        amount = int(amount)
+
+                        # Create PurchaseItem and set unit_price
+                        purchase_item = PurchaseItem(
+                            book=book,
+                            amount=amount,
+                            purchase=purchase,
+                            unit_price=book.price  # Set the unit price
+                        )
+                        purchase_item.save()
+
+                        # Update total cost
+                        total_cost += book.price * amount
+
+                        # Update book stock
+                        book.quantity_in_stock += amount
+                        book.save()
+                    except (Book.DoesNotExist, ValueError):
+                        continue  # Skip invalid items
+
+        # Update total cost in Purchase
+        purchase.total_cost = total_cost
+        purchase.save()
+
+        # Redirect or respond
+        return redirect('bookstore:supplier')  # Update to your desired redirect
+
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+
+def supplier_static_page(request):
+    """
+    Displays static analytics for supplier purchases.
+    """
+
+    # Total Purchases by Publisher
+    purchases_by_publisher = PurchaseItem.objects.values(
+        'book__publisher__name') \
+        .annotate(total_spent=Sum(F('amount') * F('unit_price'))) \
+        .order_by('-total_spent')
+
+    # Total Purchases by Book Title
+    purchases_by_book = PurchaseItem.objects.values('book__title') \
+        .annotate(total_purchased=Sum(F('amount') * F('unit_price'))) \
+        .order_by('-total_purchased')
+
+    today = timezone.localtime(timezone.now()).date()
+
+    # Monthly Purchase Report (Default: current month)
+    current_month = today.month
+    current_year = today.year
+    monthly_purchases = Purchase.objects.filter(purchase_date__year=current_year, purchase_date__month=current_month) \
+        .aggregate(monthly_spent=Sum('total_cost'))
+
+    # Top 10 Purchased Books of Current Month
+    top_purchased_books = PurchaseItem.objects.filter(purchase__purchase_date__year=current_year, purchase__purchase_date__month=current_month) \
+        .values('book__title') \
+        .annotate(total_spent=Sum(F('amount') * F('unit_price'))) \
+        .order_by('-total_spent')[:10]
+
+    context = {
+        'purchases_by_publisher': purchases_by_publisher,
+        'purchases_by_book': purchases_by_book,
+        'monthly_purchases': monthly_purchases,
+        'top_purchased_books': top_purchased_books,
+        'today': today,
+    }
+
+    return render(request, 'bookstore/supplier_static_page.html', context)

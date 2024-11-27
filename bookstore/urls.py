@@ -22,4 +22,9 @@ urlpatterns = [
     path('customer/<int:pk>/edit/', views.CustomerUpdateView.as_view(), name='customer_edit'),
     path('customer/<int:pk>/delete/', views.CustomerDeleteView.as_view(), name='customer_delete'),
     path('supplier/', views.SupplierView.as_view(), name='supplier'),
+    path('supplier/add/', views.AddPurchaseView.as_view(),
+         name='add_purchase'),
+    path('supplier/create/', views.create_purchase, name='create_purchase'),
+    path('supplier/static/', views.supplier_static_page, name='supplier_static_page'),
+
 ]

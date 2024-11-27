@@ -1,8 +1,89 @@
 {% extends "bookstore/base.html" %}
 
-{% block title %}Supplier - Bookstore{% endblock %}
-
 {% block content %}
-<h1>Supplier Management</h1>
-<p>Use the menu to navigate through the app.</p>
+    <h2>Supplier Management</h2>
+
+    <!-- Add Purchase Button -->
+    <div class="button-container">
+        <a href="{% url 'bookstore:add_purchase' %}" class="btn btn-primary">Add Purchase</a>
+        <a href="{% url 'bookstore:supplier_static_page' %}" class="btn btn-secondary">Static Page</a> <!-- Static Page Button -->
+    </div>
+
+    <!-- Search by Date -->
+    <div class="search-container">
+        <input type="date" id="search-date" onchange="searchPurchasesByDate(this.value)">
+    </div>
+
+<!-- Purchases Table -->
+<h3>Purchases</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Purchase ID</th>
+            <th>Date</th>
+            <th>Total Cost</th>
+            <th>Purchase Items</th>
+        </tr>
+    </thead>
+    <tbody id="purchase-table-body">
+        {% for purchase in purchases %}
+            <tr>
+                <td>{{ purchase.id }}</td>
+                <td>{{ purchase.purchase_date }}</td>
+                <td>{{ purchase.total_cost }}</td>
+                <td>
+                    {% for item in purchase.purchaseitem_set.all %}
+                        <p>{{ item.book.title }} - {{ item.amount }} pcs  | {{ item.unit_price }} per/pc</p>
+                    {% endfor %}
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+
+    <script>
+        // Set the default date to today's date
+        const today = new Date();
+        const formattedDate = today.toISOString().split('T')[0]; // Format date as YYYY-MM-DD
+        const dateInput = document.getElementById('search-date');
+        dateInput.value = formattedDate;
+
+        function searchPurchasesByDate(date) {
+            fetch(`/supplier/?date=${date}`, { headers: { 'x-requested-with': 'XMLHttpRequest' } })
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('purchase-table-body');
+                    tableBody.innerHTML = ''; // Clear existing rows
+
+                    if (data.purchases.length === 0) {
+                        tableBody.innerHTML = '<tr><td colspan="4">No purchases found for this date.</td></tr>';
+                        return;
+                    }
+
+                    data.purchases.forEach(purchase => {
+                        const row = document.createElement('tr');
+                        const purchaseItems = purchase.purchase_items
+                            .map(item => `${item.book_title} - ${item.amount} pcs`)
+                            .join('<br>');
+
+                        row.innerHTML = `
+                            <td>${purchase.id}</td>
+                            <td>${purchase.purchase_date}</td>
+                            <td>${purchase.total_cost}</td>
+                            <td>${purchaseItems}</td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                })
+                .catch(error => console.log('Error fetching purchases:', error));
+        }
+
+        // Avoid immediate AJAX call if initial data is already rendered
+        dateInput.addEventListener('change', (event) => {
+            searchPurchasesByDate(event.target.value);
+        });
+    </script>
+
+
 {% endblock %}

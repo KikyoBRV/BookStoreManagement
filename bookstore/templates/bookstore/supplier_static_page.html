@@ -1,0 +1,63 @@
+{% extends "bookstore/base.html" %}
+
+{% block content %}
+    <h1>Supplier Static Analytics</h1>
+
+    <h2>Total Purchases by Publisher</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Publisher Name</th>
+                <th>Total Purchased</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for book in purchases_by_publisher %}
+            <tr>
+                <td>{{ book.book__publisher__name }}</td>
+                <td>{{ book.total_spent }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+
+    <h2>Total Purchases by Book</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Book Title</th>
+                <th>Total Purchased</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for book in purchases_by_book %}
+            <tr>
+                <td>{{ book.book__title }}</td>
+                <td>{{ book.total_purchased }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Monthly Purchases</h2>
+    <p>Total Spent This Month: {{ monthly_purchases.monthly_spent }}</p>
+
+    <h2>Top 10 Purchased Books of Current Month</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Book Title</th>
+                <th>Total Spent</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for book in top_purchased_books %}
+            <tr>
+                <td>{{ book.book__title }}</td>
+                <td>{{ book.total_spent }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

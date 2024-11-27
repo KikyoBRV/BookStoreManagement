@@ -1,0 +1,86 @@
+{% extends "bookstore/base.html" %}
+
+{% block content %}
+<h2>Create New Purchase</h2>
+
+<form id="purchase-form" method="POST" action="{% url 'bookstore:create_purchase' %}">
+    {% csrf_token %}
+
+    <!-- Purchase Items Section -->
+    <h3>Purchase Items:</h3>
+    <div id="order-items-container">
+        <div class="order-item" id="order-item-1">
+            <label for="book-1">Book:</label>
+            <select class="book-id" id="book-1" name="book-1" required>
+                {% for book in books %}
+                    <option value="{{ book.id }}" data-price="{{ book.price }}">{{ book.title }}</option>
+                {% endfor %}
+            </select><br><br>
+
+            <label for="amount-1">Amount:</label>
+            <input type="number" class="amount" id="amount-1" name="amount-1" required><br><br>
+        </div>
+    </div>
+
+    <button type="button" id="add-purchase-item-btn">Add Another Item</button><br><br>
+
+    <h3>Total Amount: <span id="total-amount">0</span></h3>
+
+    <button type="submit">Create Purchase</button>
+</form>
+
+<script>
+    let purchaseItemCount = 1;
+
+    // Function to update the total amount
+    function updateTotalAmount() {
+        let totalAmount = 0;
+
+        // Loop through each purchase item and calculate the total
+        for (let i = 1; i <= purchaseItemCount; i++) {
+            const bookId = document.getElementById(`book-${i}`).value;
+            const amount = document.getElementById(`amount-${i}`).value;
+
+            if (bookId && amount) {
+                const bookPrice = parseFloat(document.getElementById(`book-${i}`).selectedOptions[0].getAttribute('data-price'));
+                totalAmount += bookPrice * parseInt(amount);
+            }
+        }
+
+        document.getElementById('total-amount').innerText = totalAmount.toFixed(2);
+    }
+
+    // Add event listeners for the amount fields to update the total amount
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('amount') || e.target.classList.contains('book-id')) {
+            updateTotalAmount();
+        }
+    });
+
+    // Event listener for adding new PurchaseItems
+    document.getElementById('add-purchase-item-btn').addEventListener('click', function() {
+        purchaseItemCount++;
+
+        // Create new PurchaseItem field
+        const newPurchaseItem = document.createElement('div');
+        newPurchaseItem.classList.add('purchase-item');
+        newPurchaseItem.id = `purchase-item-${purchaseItemCount}`;
+
+        newPurchaseItem.innerHTML = `
+            <label for="book-${purchaseItemCount}">Book:</label>
+            <select class="book-id" id="book-${purchaseItemCount}" name="book-${purchaseItemCount}" required>
+                {% for book in books %}
+                    <option value="{{ book.id }}" data-price="{{ book.price }}">{{ book.title }}</option>
+                {% endfor %}
+            </select><br><br>
+
+            <label for="amount-${purchaseItemCount}">Amount:</label>
+            <input type="number" class="amount" id="amount-${purchaseItemCount}" name="amount-${purchaseItemCount}" required><br><br>
+        `;
+
+        // Append the new PurchaseItem to the container
+        document.getElementById('purchase-items-container').appendChild(newPurchaseItem);
+    });
+</script>
+
+{% endblock %}
