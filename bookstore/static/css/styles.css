@@ -137,3 +137,21 @@ a.btn:hover {
     margin-bottom: 20px; /* Adjust the value as needed */
 }
 
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 10px;
+}
+
+.app-name {
+    flex: 1;
+    text-align: center;
+}
+
+.app-name h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: white;
+}

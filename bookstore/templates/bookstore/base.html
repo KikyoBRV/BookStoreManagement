@@ -10,28 +10,32 @@
 <body>
     <header>
         <nav>
-            <div class="dropdown">
-                <button class="dropdown-btn">Menu</button>
-                <div class="dropdown-content">
-                    <a href="{% url 'bookstore:home' %}">Home</a>
-                    <a href="{% url 'bookstore:inventory' %}">Inventory</a>
-                    <a href="{% url 'bookstore:sales' %}">Sales</a>
-                    <a href="{% url 'bookstore:customer' %}">Customer Management</a>
-                    <a href="{% url 'bookstore:supplier' %}">Supplier Management</a>
+            <div class="header-container">
+                <div class="dropdown">
+                    <button class="dropdown-btn">Menu</button>
+                    <div class="dropdown-content">
+                        <a href="{% url 'bookstore:home' %}">Home</a>
+                        <a href="{% url 'bookstore:inventory' %}">Inventory</a>
+                        <a href="{% url 'bookstore:sales' %}">Sales</a>
+                        <a href="{% url 'bookstore:customer' %}">Customer Management</a>
+                        <a href="{% url 'bookstore:supplier' %}">Supplier Management</a>
+                    </div>
                 </div>
-            </div>
-            <div class="auth-buttons">
-                {% if user.is_authenticated %}
-                    <span class="welcome-message">Welcome, {{ user.username }}!</span>
-                    <form action="{% url 'logout' %}" method="post" style="display: inline;">
-                        {% csrf_token %}
-                        <button type="submit" class="btn">Logout</button>
-                    </form>
-                {% else %}
-                    <a href="{% url 'login' %}" class="btn">Login</a>
-                    <a href="{% url 'bookstore:signup' %}" class="btn">Sign Up</a>
-
-                {% endif %}
+                <div class="app-name">
+                    <h1>Bookstore Management App</h1>
+                </div>
+                <div class="auth-buttons">
+                    {% if user.is_authenticated %}
+                        <span class="welcome-message">Welcome, {{ user.username }}!</span>
+                        <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn">Logout</button>
+                        </form>
+                    {% else %}
+                        <a href="{% url 'login' %}" class="btn">Login</a>
+                        <a href="{% url 'bookstore:signup' %}" class="btn">Sign Up</a>
+                    {% endif %}
+                </div>
             </div>
         </nav>
     </header>
@@ -40,9 +44,6 @@
         <!-- Page-specific content will go here -->
         {% endblock %}
     </main>
-    <footer>
-        <p>&copy; 2024 BookstoreManagement App</p>
-    </footer>
     <script src="{% static 'js/navbar.js' %}"></script>
 </body>
 </html>
