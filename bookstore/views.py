@@ -1,3 +1,6 @@
+from django.utils import timezone
+from decimal import Decimal
+
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -275,9 +278,40 @@ def create_order(request):
 
                 order_items.append(order_item)
 
+        # Apply loyalty point discount (10% off for every 100 points)
+        if customer.loyalty_points >= 100:
+            discount = total_amount * Decimal('0.10')
+            total_amount -= discount
+
+            # Deduct 100 loyalty points if a discount was applied
+            customer.loyalty_points -= 100
+            customer.save()
+
+        # Calculate extra loyalty points based on join date
+        local_time = timezone.localtime(timezone.now())  # Get local time
+        today = local_time.date()  # Extract date from local time
+        print(today.year)
+        print(customer.join_date.year)
+
+        # Check if the customer has already had their full anniversary for the current year
+        if (today.month > customer.join_date.month) or (today.month == customer.join_date.month and today.day >= customer.join_date.day):
+            years_joined = today.year - customer.join_date.year
+        else:
+            years_joined = today.year - customer.join_date.year - 1  # They haven't had their anniversary yet this year
+
+        extra_points = round((total_amount // 50) * (Decimal('0.10') * years_joined))
+        print(extra_points)
+
+        # Add loyalty points based on order total
+        loyalty_points_earned = (total_amount // 50) + extra_points
+
         # Update the total amount for the Order after all OrderItems are created
         order.total_amount = total_amount
         order.save()
+
+        # Update Customer's loyalty points
+        customer.loyalty_points += loyalty_points_earned
+        customer.save()
 
         # Redirect to the sales page after order is created
         return redirect('bookstore:sales')
