@@ -1,0 +1,81 @@
+{% extends "bookstore/base.html" %}
+
+{% block content %}
+    <h2>Sales Static Page</h2>
+
+    <!-- Revenue Breakdown by Category -->
+    <div class="report-section">
+        <h3>Revenue Breakdown by Category</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Total Revenue</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in revenue_by_category %}
+                    <tr>
+                        <td>{{ entry.book__category__name }}</td>
+                        <td>${{ entry.total_revenue|floatformat:2 }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Revenue Breakdown by Publisher -->
+    <div class="report-section">
+        <h3>Revenue Breakdown by Publisher</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Publisher</th>
+                    <th>Total Revenue</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in revenue_by_publisher %}
+                    <tr>
+                        <td>{{ entry.book__publisher__name }}</td>
+                        <td>${{ entry.total_revenue|floatformat:2 }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Daily Sales Report -->
+    <div class="report-section">
+        <h3>Daily Sales Report ({{ today }})</h3>
+        <p>Total Sales: ${{ daily_sales.daily_revenue|floatformat:2 }}</p>
+    </div>
+
+    <!-- Monthly Sales Report -->
+    <div class="report-section">
+        <h3>Monthly Sales Report ({{ today|date:"F Y" }})</h3>
+        <p>Total Sales: ${{ monthly_sales.monthly_revenue|floatformat:2 }}</p>
+    </div>
+
+    <!-- Top 10 Selling Books -->
+    <div class="report-section">
+        <h3>Top 10 Selling Books This Month</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Book Title</th>
+                    <th>Total Sales</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for book in top_books %}
+                    <tr>
+                        <td>{{ book.book__title }}</td>
+                        <td>${{ book.total_sales|floatformat:2 }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+{% endblock %}

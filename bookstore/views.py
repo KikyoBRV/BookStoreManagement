@@ -1,3 +1,4 @@
+from django.db.models import Sum
 from django.utils import timezone
 from decimal import Decimal
 
@@ -5,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils.dateparse import parse_date
 from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView, ListView
@@ -162,6 +163,45 @@ class SalesView(ListView):
             }
             return JsonResponse(data)
         return super().get(request, *args, **kwargs)
+
+def sales_static_page(request):
+    # Revenue Breakdown by Category
+    revenue_by_category = OrderItem.objects.values('book__category__name') \
+        .annotate(total_revenue=Sum('order__total_amount')) \
+        .order_by('-total_revenue')
+
+    # Revenue Breakdown by Publisher
+    revenue_by_publisher = OrderItem.objects.values('book__publisher__name') \
+        .annotate(total_revenue=Sum('order__total_amount')) \
+        .order_by('-total_revenue')
+
+    # Daily Sales Report (Default: today)
+    today = timezone.localtime(timezone.now()).date()
+    daily_sales = OrderItem.objects.filter(order__order_date=today) \
+        .aggregate(daily_revenue=Sum('order__total_amount'))
+
+    # Monthly Sales Report (Default: current month)
+    current_month = today.month
+    current_year = today.year
+    monthly_sales = OrderItem.objects.filter(order__order_date__year=current_year, order__order_date__month=current_month) \
+        .aggregate(monthly_revenue=Sum('order__total_amount'))
+
+    # Top 10 Selling Books of Current Month
+    top_books = OrderItem.objects.filter(order__order_date__year=current_year, order__order_date__month=current_month) \
+        .values('book__title') \
+        .annotate(total_sales=Sum('order__total_amount')) \
+        .order_by('-total_sales')[:10]
+
+    context = {
+        'revenue_by_category': revenue_by_category,
+        'revenue_by_publisher': revenue_by_publisher,
+        'daily_sales': daily_sales,
+        'monthly_sales': monthly_sales,
+        'top_books': top_books,
+        'today': today,
+    }
+
+    return render(request, 'bookstore/sales_static_page.html', context)
 
 class AddOrderView(CreateView):
     """
