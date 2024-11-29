@@ -164,7 +164,7 @@ class SalesView(ListView):
             return JsonResponse(data)
         return super().get(request, *args, **kwargs)
 
-def sales_static_page(request):
+def sales_statistic_page(request):
     # Revenue Breakdown by Category
     revenue_by_category = OrderItem.objects.values('book__category__name') \
         .annotate(total_revenue=Sum('order__total_amount')) \
@@ -201,7 +201,7 @@ def sales_static_page(request):
         'today': today,
     }
 
-    return render(request, 'bookstore/sales_static_page.html', context)
+    return render(request, 'bookstore/sales_statistic_page.html', context)
 
 class AddOrderView(CreateView):
     """
@@ -556,7 +556,7 @@ def create_purchase(request):
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
 
-def supplier_static_page(request):
+def supplier_statistic_page(request):
     """
     Displays static analytics for supplier purchases.
     """
@@ -594,4 +594,4 @@ def supplier_static_page(request):
         'today': today,
     }
 
-    return render(request, 'bookstore/supplier_static_page.html', context)
+    return render(request, 'bookstore/supplier_statistic_page.html', context)
