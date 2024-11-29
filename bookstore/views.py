@@ -1,7 +1,7 @@
 from django.db.models import Sum, F
 from django.utils import timezone
 from decimal import Decimal
-
+from django.db import models
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -167,29 +167,29 @@ class SalesView(ListView):
 def sales_statistic_page(request):
     # Revenue Breakdown by Category
     revenue_by_category = OrderItem.objects.values('book__category__name') \
-        .annotate(total_revenue=Sum('order__total_amount')) \
+        .annotate(total_revenue=Sum(F('amount') * F('book__price'), output_field=models.FloatField())) \
         .order_by('-total_revenue')
 
     # Revenue Breakdown by Publisher
     revenue_by_publisher = OrderItem.objects.values('book__publisher__name') \
-        .annotate(total_revenue=Sum('order__total_amount')) \
+        .annotate(total_revenue=Sum(F('amount') * F('book__price'), output_field=models.FloatField())) \
         .order_by('-total_revenue')
 
     # Daily Sales Report (Default: today)
     today = timezone.localtime(timezone.now()).date()
     daily_sales = OrderItem.objects.filter(order__order_date=today) \
-        .aggregate(daily_revenue=Sum('order__total_amount'))
+        .aggregate(daily_revenue=Sum(F('amount') * F('book__price'), output_field=models.FloatField()))
 
     # Monthly Sales Report (Default: current month)
     current_month = today.month
     current_year = today.year
     monthly_sales = OrderItem.objects.filter(order__order_date__year=current_year, order__order_date__month=current_month) \
-        .aggregate(monthly_revenue=Sum('order__total_amount'))
+        .aggregate(monthly_revenue=Sum(F('amount') * F('book__price'), output_field=models.FloatField()))
 
     # Top 10 Selling Books of Current Month
     top_books = OrderItem.objects.filter(order__order_date__year=current_year, order__order_date__month=current_month) \
         .values('book__title') \
-        .annotate(total_sales=Sum('order__total_amount')) \
+        .annotate(total_sales=Sum(F('amount') * F('book__price'), output_field=models.FloatField())) \
         .order_by('-total_sales')[:10]
 
     context = {
