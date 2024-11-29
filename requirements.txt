@@ -1,0 +1,4 @@
+Django
+python-dotenv
+python-decouple
+psycopg[binary]
